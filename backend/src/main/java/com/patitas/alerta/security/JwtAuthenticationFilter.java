@@ -37,8 +37,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        jwt = authHeader.substring(7);
-        userEmail = jwtUtil.extractUsername(jwt);
+        try {
+            jwt = authHeader.substring(7);
+            userEmail = jwtUtil.extractUsername(jwt);
+        } catch (Exception e) {
+            // Si el token expiró o es inválido, simplemente continuamos el filtro sin autenticar
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // Si extraemos un email y no hay nadie autenticado aún en el contexto
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
