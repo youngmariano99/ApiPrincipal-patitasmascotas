@@ -10,35 +10,56 @@ export const Login: React.FC = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nombreCompleto, setNombreCompleto] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [esRegistro, setEsRegistro] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [errorUsuario, setErrorUsuario] = useState<string | null>(null);
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
   const manejarEnvio = async (evento: React.FormEvent) => {
     evento.preventDefault();
     setCargando(true);
     setErrorUsuario(null);
+    setMensajeExito(null);
 
     try {
-      logger.loguearInformacion('Intentando iniciar sesión', { email });
-      
-      const respuesta = await clienteApi.realizarPeticion<{ token: string }>(
-        CONFIGURACION_API.ENDPOINTS.AUTENTICACION.LOGIN,
-        {
-          metodo: 'POST',
-          datos: { email, password },
-          requiereToken: false, // El login no requiere token
-        }
-      );
-
-      if (respuesta.token) {
-        storageAutenticacion.guardarToken(respuesta.token);
-        logger.loguearInformacion('Inicio de sesión exitoso. Redirigiendo...');
-        navigate('/');
+      if (esRegistro) {
+        logger.loguearInformacion('Intentando registrar nuevo usuario', { email });
+        await clienteApi.realizarPeticion<{ mensaje: string }>(
+          '/auth/registro',
+          {
+            metodo: 'POST',
+            datos: { email, password, nombreCompleto, telefono },
+            requiereToken: false,
+          }
+        );
+        setMensajeExito('¡Cuenta creada con éxito! Ya podés iniciar sesión.');
+        setEsRegistro(false);
+        setPassword('');
       } else {
-        throw new Error('Respuesta inválida del servidor');
+        logger.loguearInformacion('Intentando iniciar sesión', { email });
+        
+        const respuesta = await clienteApi.realizarPeticion<{ token: string }>(
+          CONFIGURACION_API.ENDPOINTS.AUTENTICACION.LOGIN,
+          {
+            metodo: 'POST',
+            datos: { email, password },
+            requiereToken: false,
+          }
+        );
+
+        if (respuesta.token) {
+          storageAutenticacion.guardarToken(respuesta.token);
+          logger.loguearInformacion('Inicio de sesión exitoso. Redirigiendo...');
+          navigate('/');
+        } else {
+          throw new Error('Respuesta inválida del servidor');
+        }
       }
     } catch (error) {
-      const mensaje = logger.loguearError(error, 'Fallo en la autenticación');
+      const operacion = esRegistro ? 'Fallo en el registro' : 'Fallo en la autenticación';
+      const mensaje = logger.loguearError(error, operacion);
       setErrorUsuario(mensaje);
     } finally {
       setCargando(false);
@@ -56,7 +77,7 @@ export const Login: React.FC = () => {
           />
           <h1 style={{ fontSize: '28px', color: 'var(--color-primario)' }}>Patitas en Alerta</h1>
           <p style={{ color: 'var(--color-texto-secundario)', marginTop: '8px' }}>
-            Inicia sesión para cuidar y reportar tus mascotas.
+            {esRegistro ? 'Registrá tu cuenta para empezar.' : 'Inicia sesión para cuidar y reportar tus mascotas.'}
           </p>
         </div>
 
@@ -67,7 +88,43 @@ export const Login: React.FC = () => {
           </div>
         )}
 
+        {mensajeExito && (
+          <div className="alerta-mensaje exito">
+            <span>{mensajeExito}</span>
+          </div>
+        )}
+
         <form onSubmit={manejarEnvio}>
+          {esRegistro && (
+            <>
+              <div className="grupo-formulario">
+                <label className="etiqueta-formulario" htmlFor="nombreCompleto">Nombre Completo</label>
+                <input
+                  id="nombreCompleto"
+                  type="text"
+                  className="campo-entrada"
+                  placeholder="Ej: Juan Pérez"
+                  value={nombreCompleto}
+                  onChange={(e) => setNombreCompleto(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="grupo-formulario">
+                <label className="etiqueta-formulario" htmlFor="telefono">Teléfono</label>
+                <input
+                  id="telefono"
+                  type="tel"
+                  className="campo-entrada"
+                  placeholder="Ej: 1122334455"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          )}
+
           <div className="grupo-formulario">
             <label className="etiqueta-formulario" htmlFor="email">Correo Electrónico</label>
             <input
@@ -99,9 +156,30 @@ export const Login: React.FC = () => {
             className="boton-principal"
             disabled={cargando}
           >
-            {cargando ? 'Ingresando...' : 'Ingresar'}
+            {cargando ? (esRegistro ? 'Registrando...' : 'Ingresando...') : (esRegistro ? 'Registrarse' : 'Ingresar')}
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <button
+            onClick={() => {
+              setEsRegistro(!esRegistro);
+              setErrorUsuario(null);
+              setMensajeExito(null);
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-primario)',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              fontSize: '15px',
+              fontWeight: 600
+            }}
+          >
+            {esRegistro ? '¿Ya tenés cuenta? Iniciá Sesión' : '¿No tenés cuenta? Registrate acá'}
+          </button>
+        </div>
       </div>
     </div>
   );
