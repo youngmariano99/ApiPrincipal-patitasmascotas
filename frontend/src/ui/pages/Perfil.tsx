@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useDependencias } from '../../infrastructure/DependenciasContext';
 import { User, LogOut, Info } from 'lucide-react';
 
+import { parsearJwt } from '../../infrastructure/utils/parsearJwt';
+
 export const Perfil: React.FC = () => {
   const { storageAutenticacion, logger } = useDependencias();
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export const Perfil: React.FC = () => {
   };
 
   const tokenActivo = storageAutenticacion.obtenerToken();
+  const usuario = tokenActivo ? parsearJwt(tokenActivo) : null;
 
   return (
     <div className="contenedor">
@@ -34,11 +37,11 @@ export const Perfil: React.FC = () => {
           <User size={40} />
         </div>
 
-        {tokenActivo ? (
+        {usuario ? (
           <>
-            <h2 style={{ fontSize: '22px' }}>Juan Pérez (Vecino)</h2>
+            <h2 style={{ fontSize: '22px' }}>{usuario.nombreCompleto} ({usuario.rol.replace('ROLE_', '').toLowerCase()})</h2>
             <p style={{ color: 'var(--color-texto-secundario)', fontSize: '16px', marginTop: '4px' }}>
-              vecino@gmail.com
+              {usuario.sub}
             </p>
             <div style={{ 
               marginTop: '16px', 

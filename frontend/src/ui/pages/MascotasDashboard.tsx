@@ -4,6 +4,7 @@ import { useDependencias } from '../../infrastructure/DependenciasContext';
 import { CONFIGURACION_API } from '../../infrastructure/config/configuracionApi';
 import type { Mascota, MascotaRequest } from '../../domain/interfaces/Modelos';
 import { ShieldAlert, Trash2, Edit, Plus, Info, RefreshCw, X } from 'lucide-react';
+import { parsearJwt } from '../../infrastructure/utils/parsearJwt';
 
 export const MascotasDashboard: React.FC = () => {
   const { clienteApi, storageAutenticacion, logger } = useDependencias();
@@ -27,8 +28,10 @@ export const MascotasDashboard: React.FC = () => {
   const [color, setColor] = useState('');
   const [raza, setRaza] = useState('');
 
-  // ID del Vecino Mock de la BD
-  const VECINO_ID = '11111111-2222-3333-4444-555555555555';
+  // ID del Usuario actual cargado dinámicamente del token
+  const token = storageAutenticacion.obtenerToken();
+  const usuarioLogueado = token ? parsearJwt(token) : null;
+  const usuarioIdActual = usuarioLogueado?.id || '11111111-2222-3333-4444-555555555555';
 
   const cargarMascotas = useCallback(async () => {
     setCargando(true);
@@ -42,7 +45,7 @@ export const MascotasDashboard: React.FC = () => {
 
       logger.loguearInformacion('Cargando mascotas desde el servidor', { mostrarSoloMisMascotas });
       
-      const filtros = mostrarSoloMisMascotas ? { duenoId: VECINO_ID } : undefined;
+      const filtros = mostrarSoloMisMascotas ? { duenoId: usuarioIdActual } : undefined;
       const datos = await clienteApi.realizarPeticion<Mascota[]>(
         CONFIGURACION_API.ENDPOINTS.MASCOTAS,
         {
@@ -107,7 +110,7 @@ export const MascotasDashboard: React.FC = () => {
 
     const caracteristicasJson = JSON.stringify({ color, raza });
     const payload: MascotaRequest = {
-      usuarioId: VECINO_ID,
+      usuarioId: usuarioIdActual,
       nombre,
       especie,
       estadoAdopcion,
