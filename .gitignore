@@ -4,6 +4,8 @@ backend/*.class
 backend/.mvn/wrapper/maven-wrapper.properties
 !backend/mvnw
 !backend/mvnw.cmd
+backend/.env
+backend/.env.local
 
 # Node / Frontend
 frontend/node_modules/
